@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MASE Footwear Care</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-box">
+          <div class="brand-mark">👟</div>
+          <div>
+            <h1>MASE</h1>
+            <p>FOOTWEAR CARE</p>
+          </div>
+        </div>
+
+        <nav class="sidebar-menu">
+          <a href="#dashboard" class="nav-item active">
+            <span>📊</span>
+            <span>Dashboard</span>
+          </a>
+          <a href="#transaksi-section" class="nav-item">
+            <span>🧾</span>
+            <span>Transaksi</span>
+          </a>
+          <a href="#produk-section" class="nav-item">
+            <span>🧴</span>
+            <span>Produk &amp; Jasa</span>
+          </a>
+          <a href="#pelanggan-section" class="nav-item">
+            <span>👥</span>
+            <span>Pelanggan</span>
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <p>MASE Footwear Care</p>
+          <span>Accounting System</span>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <section id="dashboard" class="page-section">
+          <div class="page-header">
+            <div>
+              <p class="eyebrow">Overview</p>
+              <h2>Dashboard</h2>
+            </div>
+          </div>
+
+          <p class="subtitle">
+            Kelola pendapatan dan transaksi MASE Footwear Care dengan mudah.
+          </p>
+
+          <div class="stats-grid">
+            <div class="stat-card primary">
+              <div class="stat-icon">💰</div>
+              <div>
+                <span>Total Pendapatan</span>
+                <strong id="stat-total-pendapatan">Rp 0</strong>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon">🧾</div>
+              <div>
+                <span>Total Transaksi</span>
+                <strong id="stat-total-transaksi">0 transaksi</strong>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon">👤</div>
+              <div>
+                <span>Total Pelanggan</span>
+                <strong id="stat-total-pelanggan">0 pelanggan</strong>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon">🧴</div>
+              <div>
+                <span>Produk &amp; Jasa</span>
+                <strong id="stat-total-item">0 item</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Transaksi Terbaru</h3>
+            </div>
+
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Tanggal</th>
+                    <th>Pelanggan</th>
+                    <th>Item</th>
+                    <th>Jenis</th>
+                    <th>Jumlah</th>
+                    <th>Total</th>
+                    <th>Status Pembayaran</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="transaction-table-body">
+                  <tr>
+                    <td colspan="9" class="empty-state">Memuat data transaksi...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="transaksi-section" class="page-section">
+          <div class="page-header compact">
+            <div>
+              <p class="eyebrow">Cash flow</p>
+              <h2>Tambah Transaksi</h2>
+            </div>
+          </div>
+
+          <div class="form-layout">
+            <form id="transaction-form" class="panel form-panel">
+              <div class="form-grid">
+                <div class="field-group">
+                  <label for="pelangganSelect">Nama pelanggan</label>
+                  <select id="pelangganSelect" required>
+                    <option value="">Pilih pelanggan</option>
+                  </select>
+                </div>
+
+                <div class="field-group">
+                  <label for="itemSelect">Produk/Jasa</label>
+                  <select id="itemSelect" required>
+                    <option value="">Pilih item</option>
+                  </select>
+                </div>
+
+                <div class="field-group">
+                  <label for="quantityInput">Jumlah</label>
+                  <input id="quantityInput" type="number" min="1" value="1" required />
+                </div>
+
+                <div class="field-group">
+                  <label for="paymentMethod">Metode pembayaran</label>
+                  <select id="paymentMethod" required>
+                    <option value="">Pilih metode</option>
+                    <option value="CASH">CASH</option>
+                    <option value="QRIS">QRIS</option>
+                    <option value="TRANSFER">TRANSFER</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="preview-box">
+                <div class="preview-row">
+                  <span>Harga</span>
+                  <strong id="selectedItemPrice">Rp 0</strong>
+                </div>
+
+                <div class="preview-row">
+                  <span>Jumlah</span>
+                  <strong id="selectedQuantity">1</strong>
+                </div>
+
+                <div class="preview-row total-row">
+                  <span>Total</span>
+                  <strong id="totalPricePreview">Rp 0</strong>
+                </div>
+              </div>
+
+              <div class="action-row">
+                <button type="submit" class="primary-btn" id="submitTransactionBtn">
+                  Simpan Transaksi
+                </button>
+                <button type="button" class="secondary-btn hidden" id="cancelEditBtn">
+                  Batal Edit
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section id="produk-section" class="page-section">
+          <div class="page-header compact">
+            <div>
+              <p class="eyebrow">Catalog</p>
+              <h2>Produk &amp; Jasa</h2>
+            </div>
+            <button type="button" class="primary-btn small-btn" id="add-item-btn">
+              + Tambah Produk &amp; Jasa
+            </button>
+          </div>
+
+          <div id="product-grid" class="product-grid"></div>
+        </section>
+
+        <section id="pelanggan-section" class="page-section">
+          <div class="page-header compact">
+            <div>
+              <p class="eyebrow">Members</p>
+              <h2>Pelanggan</h2>
+            </div>
+            <button type="button" class="primary-btn small-btn" id="add-customer-btn">
+              + Tambah Pelanggan
+            </button>
+          </div>
+
+          <div class="panel">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nama Pelanggan</th>
+                    <th>No. HP</th>
+                    <th>Jumlah Transaksi</th>
+                  </tr>
+                </thead>
+                <tbody id="customer-table-body">
+                  <tr>
+                    <td colspan="4" class="empty-state">Memuat data pelanggan...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <div id="entry-modal" class="modal hidden" aria-hidden="true">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="entry-modal-title">Tambah Data</h3>
+          <button type="button" class="close-btn" id="close-entry-modal-btn" aria-label="Tutup modal">✕</button>
+        </div>
+
+        <form id="entry-form">
+          <div id="entry-form-fields"></div>
+
+          <div class="action-row modal-actions">
+            <button type="submit" class="primary-btn">Simpan</button>
+            <button type="button" class="secondary-btn" id="cancel-entry-form-btn">Batal</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
