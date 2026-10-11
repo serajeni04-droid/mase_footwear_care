@@ -53,7 +53,15 @@ GRANT USAGE, SELECT ON SEQUENCE public.karyawan_id_karyawan_seq TO anon, authent
 
 COMMIT;
 
--- Opsional: tambahkan contoh karyawan bila tabel masih kosong.
--- INSERT INTO public.karyawan (nama_karyawan, no_hp, jabatan)
--- SELECT 'Andi Saputra', '087700000001', 'Teknisi'
--- WHERE NOT EXISTS (SELECT 1 FROM public.karyawan);
+INSERT INTO public.karyawan (nama_karyawan, no_hp, jabatan)
+SELECT sample.nama_karyawan, sample.no_hp, sample.jabatan
+FROM (VALUES
+    ('Andi Saputra', '087700000001', 'Teknisi'),
+    ('Siti Rahma', '087700000002', 'Kasir'),
+    ('Budi Santoso', '087700000003', 'Admin')
+) AS sample(nama_karyawan, no_hp, jabatan)
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM public.karyawan AS existing
+    WHERE existing.no_hp = sample.no_hp
+);
