@@ -43,10 +43,13 @@ BEGIN
           AND policyname = 'karyawan_read_write'
     ) THEN
         CREATE POLICY "karyawan_read_write" ON public.karyawan
-            FOR ALL USING (true) WITH CHECK (true);
+            FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
     END IF;
 END
 $$;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.karyawan TO anon, authenticated;
+GRANT USAGE, SELECT ON SEQUENCE public.karyawan_id_karyawan_seq TO anon, authenticated;
 
 COMMIT;
 

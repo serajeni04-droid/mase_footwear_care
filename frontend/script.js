@@ -1,5 +1,40 @@
 const API_BASE_URL = '';
 const STORAGE_KEY = 'mase_footwear_care_store_v1';
+const supabaseConfig = window.MASE_SUPABASE_CONFIG || {};
+
+function isSupabaseConfigured() {
+  return Boolean(supabaseConfig.url && supabaseConfig.anonKey);
+}
+
+async function requestSupabaseEmployees(method, query = '', payload = null) {
+  const projectUrl = String(supabaseConfig.url).replace(/\/+$/, '');
+  const response = await fetch(`${projectUrl}/rest/v1/karyawan${query}`, {
+    method,
+    headers: {
+      apikey: supabaseConfig.anonKey,
+      Authorization: `Bearer ${supabaseConfig.anonKey}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+    },
+    ...(payload ? { body: JSON.stringify(payload) } : {}),
+  });
+
+  const responseText = await response.text();
+  let result = null;
+  if (responseText) {
+    try {
+      result = JSON.parse(responseText);
+    } catch {
+      result = responseText;
+    }
+  }
+
+  if (!response.ok) {
+    throw new Error(result?.message || result?.details || `Supabase menolak permintaan (${response.status}).`);
+  }
+
+  return result;
+}
 
 const state = {
   customers: [],
@@ -176,6 +211,25 @@ function mockApiRequest(url, options = {}) {
         }
 
         if (url === '/api/karyawan') {
+          if (method === 'POST') {
+            const payload = JSON.parse(options.body || '{}');
+            const namaKaryawan = String(payload.nama_karyawan || '').trim();
+            const noHp = String(payload.no_hp || '').trim();
+            const jabatan = String(payload.jabatan || '').trim();
+
+            if (!namaKaryawan || !noHp || !jabatan) {
+              return reject(new Error('Nama, nomor HP, dan jabatan karyawan wajib diisi.'));
+            }
+
+            const nextId = mockStore.employees.length
+              ? Math.max(...mockStore.employees.map((employee) => Number(employee.id_karyawan))) + 1
+              : 1;
+            const employee = { id_karyawan: nextId, nama_karyawan: namaKaryawan, no_hp: noHp, jabatan };
+            mockStore.employees.push(employee);
+            saveMockStore();
+            return resolve(employee);
+          }
+
           return resolve(
             mockStore.employees.map((employee) => ({
               ...employee,
@@ -443,11 +497,35 @@ function mockApiRequest(url, options = {}) {
 }
 
 async function fetchData(url) {
+  if (url === '/api/karyawan' && isSupabaseConfigured()) {
+    return requestSupabaseEmployees('GET', '?select=*&order=id_karyawan.asc');
+  }
+
   const response = await mockApiRequest(url, { method: 'GET' });
   return response;
 }
 
 async function sendData(url, method, payload) {
+  if (isSupabaseConfigured() && url === '/api/karyawan' && method === 'POST') {
+    const result = await requestSupabaseEmployees('POST', '', payload);
+    return result?.[0] || result;
+  }
+
+  const employeeMatch = url.match(/^\/api\/karyawan\/(\d+)$/);
+  if (isSupabaseConfigured() && employeeMatch && ['PUT', 'DELETE'].includes(method)) {
+    const result = await requestSupabaseEmployees(
+      method === 'PUT' ? 'PATCH' : 'DELETE',
+      `?id_karyawan=eq.${employeeMatch[1]}`,
+      method === 'PUT' ? payload : null,
+    );
+
+    if (!Array.isArray(result) || result.length === 0) {
+      throw new Error('Data karyawan tidak ditemukan atau tidak dapat diubah.');
+    }
+
+    return result[0];
+  }
+
   const response = await mockApiRequest(url, {
     method,
     body: JSON.stringify(payload),
@@ -794,14 +872,18 @@ async function handleEntrySubmit(event) {
       return;
     }
 
-    const nextId = mockStore.employees.length
-      ? Math.max(...mockStore.employees.map((item) => Number(item.id_karyawan))) + 1
-      : 1;
-    mockStore.employees.push({ id_karyawan: nextId, nama_karyawan: namaKaryawan, no_hp: noHp, jabatan });
-    saveMockStore();
-    closeEntryModal();
-    await refreshAllData();
-    showToast('Karyawan berhasil ditambahkan.', 'success');
+    try {
+      await sendData('/api/karyawan', 'POST', {
+        nama_karyawan: namaKaryawan,
+        no_hp: noHp,
+        jabatan,
+      });
+      closeEntryModal();
+      await refreshAllData();
+      showToast('Karyawan berhasil ditambahkan.', 'success');
+    } catch (error) {
+      showToast(error.message || 'Gagal menambahkan karyawan.', 'error');
+    }
     return;
   }
 
@@ -920,6 +1002,8 @@ async function loadCustomers() {
 async function loadEmployees() {
   const data = await fetchData('/api/karyawan');
   state.employees = data;
+  mockStore.employees = data;
+  saveMockStore();
   renderEmployeeOptions();
   renderEmployees();
 }
