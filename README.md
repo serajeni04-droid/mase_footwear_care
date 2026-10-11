@@ -26,25 +26,27 @@ Aplikasi ini dibuat untuk membantu mengelola:
 - Edit produk/jasa
 - Hapus produk/jasa dengan validasi bila masih digunakan dalam transaksi
 - Perhitungan total harga otomatis
-- Data tersimpan di localStorage untuk demo browser
+- Data pelanggan, karyawan, produk/jasa, dan transaksi tersimpan di Supabase
+- Dashboard dihitung dari data Supabase
 
 ## Teknologi
 - HTML
 - CSS
 - JavaScript Vanilla
-- LocalStorage
+- Supabase PostgreSQL REST API
+- LocalStorage sebagai fallback jika konfigurasi Supabase kosong
 
 ## Struktur Folder
 
 Entitas database: `pelanggan`, `karyawan`, `produk_jasa`, dan `transaksi`.
 
-## Koneksi Supabase untuk Karyawan
+## Koneksi Supabase
 1. Jalankan `database/migration_karyawan.sql` melalui Supabase SQL Editor.
 2. Ambil Project URL dan publishable key dari pengaturan API proyek Supabase.
 3. Isi `frontend/supabase-config.js` dengan URL dan key tersebut. Jangan pernah menaruh secret atau `service_role` key di frontend.
-4. Buka ulang aplikasi. Daftar dan operasi tambah, edit, serta hapus karyawan akan memakai tabel `public.karyawan` melalui Supabase REST API.
+4. Buka ulang aplikasi. Pelanggan, karyawan, produk/jasa, transaksi, dan dashboard akan memakai tabel Supabase melalui REST API.
 
-Catatan keamanan: kebijakan RLS migrasi ini mengizinkan akses demo tanpa login. Siapa pun yang memiliki URL dan anon key dapat mengubah data karyawan selama kebijakan ini aktif. Jangan pernah memakai `service_role` key di frontend. Untuk aplikasi produksi, tambahkan autentikasi dan batasi kebijakan RLS sesuai pengguna. Data pelanggan, produk/jasa, dan transaksi demo masih memakai `localStorage`.
+Catatan keamanan: kebijakan demo mengizinkan akses tanpa login. Siapa pun yang memiliki URL dan publishable key dapat mengubah data pada tabel yang kebijakannya terbuka. Untuk aplikasi produksi, tambahkan autentikasi dan batasi kebijakan RLS sesuai pengguna.
 
 
 ## Cara Menjalankan
@@ -57,7 +59,7 @@ frontend/index.html
 Atau jalankan dengan server lokal sederhana jika diperlukan, lalu akses halaman utama dari browser.
 
 ## Catatan
-Aplikasi ini dibuat untuk kebutuhan tugas kuliah dan berjalan sebagai aplikasi frontend statis dengan penyimpanan lokal di browser.
+Aplikasi ini dibuat untuk kebutuhan tugas kuliah dan berjalan sebagai aplikasi frontend statis yang terhubung ke Supabase.
 
 ## Kontributor
 MASE Footwear Care

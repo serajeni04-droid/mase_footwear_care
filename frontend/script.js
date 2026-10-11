@@ -6,7 +6,7 @@ function isSupabaseConfigured() {
   return Boolean(supabaseConfig.url && supabaseConfig.anonKey);
 }
 
-async function requestSupabaseEmployees(method, query = '', payload = null) {
+async function requestSupabaseTable(table, method, query = '', payload = null) {
   const projectUrl = String(supabaseConfig.url).replace(/\/+$/, '');
   const headers = {
     apikey: supabaseConfig.anonKey,
@@ -18,7 +18,7 @@ async function requestSupabaseEmployees(method, query = '', payload = null) {
     headers.Authorization = `Bearer ${supabaseConfig.anonKey}`;
   }
 
-  const response = await fetch(`${projectUrl}/rest/v1/karyawan${query}`, {
+  const response = await fetch(`${projectUrl}/rest/v1/${table}${query}`, {
     method,
     headers,
     ...(payload ? { body: JSON.stringify(payload) } : {}),
@@ -205,6 +205,23 @@ function mockApiRequest(url, options = {}) {
         }
 
         if (url === '/api/pelanggan') {
+          if (method === 'POST') {
+            const payload = JSON.parse(options.body || '{}');
+            const namaPelanggan = String(payload.nama_pelanggan || '').trim();
+            const noHp = String(payload.no_hp || '').trim();
+            if (!namaPelanggan || !noHp) {
+              return reject(new Error('Nama dan nomor HP pelanggan wajib diisi.'));
+            }
+
+            const nextId = mockStore.customers.length
+              ? Math.max(...mockStore.customers.map((customer) => Number(customer.id_pelanggan))) + 1
+              : 1;
+            const customer = { id_pelanggan: nextId, nama_pelanggan: namaPelanggan, no_hp: noHp };
+            mockStore.customers.push(customer);
+            saveMockStore();
+            return resolve(customer);
+          }
+
           return resolve(
             mockStore.customers.map((pelanggan) => ({
               ...pelanggan,
@@ -408,6 +425,30 @@ function mockApiRequest(url, options = {}) {
         }
 
         if (url === '/api/items') {
+          if (method === 'POST') {
+            const payload = JSON.parse(options.body || '{}');
+            const namaItem = String(payload.nama_item || '').trim();
+            const harga = Number(payload.harga || 0);
+            const stok = Number(payload.stok || 0);
+            if (!namaItem || harga <= 0 || stok < 0) {
+              return reject(new Error('Data produk atau jasa tidak valid.'));
+            }
+
+            const nextId = mockStore.items.length
+              ? Math.max(...mockStore.items.map((item) => Number(item.id_item))) + 1
+              : 1;
+            const item = {
+              id_item: nextId,
+              nama_item: namaItem,
+              jenis_item: payload.jenis_item === 'Jasa' ? 'Jasa' : 'Produk',
+              harga,
+              stok,
+            };
+            mockStore.items.push(item);
+            saveMockStore();
+            return resolve(item);
+          }
+
           return resolve(mockStore.items);
         }
 
@@ -502,8 +543,57 @@ function mockApiRequest(url, options = {}) {
 }
 
 async function fetchData(url) {
-  if (url === '/api/karyawan' && isSupabaseConfigured()) {
-    return requestSupabaseEmployees('GET', '?select=*&order=id_karyawan.asc');
+  if (isSupabaseConfigured()) {
+    if (url === '/api/dashboard') {
+      const [transactions, customers, items] = await Promise.all([
+        requestSupabaseTable('transaksi', 'GET', '?select=total_harga'),
+        requestSupabaseTable('pelanggan', 'GET', '?select=id_pelanggan'),
+        requestSupabaseTable('produk_jasa', 'GET', '?select=id_item'),
+      ]);
+
+      return {
+        total_pendapatan: transactions.reduce((sum, item) => sum + Number(item.total_harga || 0), 0),
+        total_transaksi: transactions.length,
+        total_pelanggan: customers.length,
+        total_items: items.length,
+      };
+    }
+
+    if (url === '/api/pelanggan') {
+      const customers = await requestSupabaseTable(
+        'pelanggan',
+        'GET',
+        '?select=*,transaksi(id_transaksi)&order=id_pelanggan.asc',
+      );
+      return customers.map((customer) => ({
+        ...customer,
+        jumlah_transaksi: customer.transaksi?.length || 0,
+      }));
+    }
+
+    if (url === '/api/karyawan') {
+      const employees = await requestSupabaseTable(
+        'karyawan',
+        'GET',
+        '?select=*,transaksi!fk_transaksi_karyawan(id_transaksi)&order=id_karyawan.asc',
+      );
+      return employees.map((employee) => ({
+        ...employee,
+        jumlah_transaksi: employee.transaksi?.length || 0,
+      }));
+    }
+
+    if (url === '/api/items') {
+      return requestSupabaseTable('produk_jasa', 'GET', '?select=*&order=id_item.asc');
+    }
+
+    if (url === '/api/transaksi') {
+      return requestSupabaseTable(
+        'transaksi',
+        'GET',
+        '?select=*,pelanggan(nama_pelanggan),produk_jasa(nama_item,jenis_item),karyawan(nama_karyawan)&order=tanggal_transaksi.desc,id_transaksi.desc',
+      );
+    }
   }
 
   const response = await mockApiRequest(url, { method: 'GET' });
@@ -511,24 +601,66 @@ async function fetchData(url) {
 }
 
 async function sendData(url, method, payload) {
-  if (isSupabaseConfigured() && url === '/api/karyawan' && method === 'POST') {
-    const result = await requestSupabaseEmployees('POST', '', payload);
-    return result?.[0] || result;
-  }
+  if (isSupabaseConfigured()) {
+    const createRoutes = {
+      '/api/pelanggan': 'pelanggan',
+      '/api/karyawan': 'karyawan',
+      '/api/items': 'produk_jasa',
+    };
 
-  const employeeMatch = url.match(/^\/api\/karyawan\/(\d+)$/);
-  if (isSupabaseConfigured() && employeeMatch && ['PUT', 'DELETE'].includes(method)) {
-    const result = await requestSupabaseEmployees(
-      method === 'PUT' ? 'PATCH' : 'DELETE',
-      `?id_karyawan=eq.${employeeMatch[1]}`,
-      method === 'PUT' ? payload : null,
-    );
-
-    if (!Array.isArray(result) || result.length === 0) {
-      throw new Error('Data karyawan tidak ditemukan atau tidak dapat diubah.');
+    if (method === 'POST' && createRoutes[url]) {
+      const result = await requestSupabaseTable(createRoutes[url], 'POST', '', payload);
+      return result?.[0] || result;
     }
 
-    return result[0];
+    const routeMatch = url.match(/^\/api\/(pelanggan|karyawan|items|transaksi)\/(\d+)$/);
+    if (routeMatch && ['PUT', 'DELETE'].includes(method)) {
+      const [, route, id] = routeMatch;
+      const tableInfo = {
+        pelanggan: { table: 'pelanggan', idColumn: 'id_pelanggan', label: 'Pelanggan' },
+        karyawan: { table: 'karyawan', idColumn: 'id_karyawan', label: 'Karyawan' },
+        items: { table: 'produk_jasa', idColumn: 'id_item', label: 'Produk atau jasa' },
+        transaksi: { table: 'transaksi', idColumn: 'id_transaksi', label: 'Transaksi' },
+      }[route];
+      let updatePayload = payload;
+
+      if (route === 'transaksi' && method === 'PUT') {
+        const selectedItem = state.items.find((item) => Number(item.id_item) === Number(payload.id_item));
+        if (!selectedItem) {
+          throw new Error('Produk atau jasa tidak ditemukan.');
+        }
+        updatePayload = {
+          ...payload,
+          total_harga: Number(selectedItem.harga) * Number(payload.jumlah),
+        };
+      }
+
+      const result = await requestSupabaseTable(
+        tableInfo.table,
+        method === 'PUT' ? 'PATCH' : 'DELETE',
+        `?${tableInfo.idColumn}=eq.${id}`,
+        method === 'PUT' ? updatePayload : null,
+      );
+
+      if (!Array.isArray(result) || result.length === 0) {
+        throw new Error(`${tableInfo.label} tidak ditemukan atau tidak dapat diubah.`);
+      }
+
+      return result[0];
+    }
+
+    if (url === '/api/transaksi' && method === 'POST') {
+      const selectedItem = state.items.find((item) => Number(item.id_item) === Number(payload.id_item));
+      if (!selectedItem) {
+        throw new Error('Produk atau jasa tidak ditemukan.');
+      }
+      const transaction = {
+        ...payload,
+        total_harga: Number(selectedItem.harga) * Number(payload.jumlah),
+      };
+      const result = await requestSupabaseTable('transaksi', 'POST', '', transaction);
+      return result?.[0] || result;
+    }
   }
 
   const response = await mockApiRequest(url, {
@@ -923,17 +1055,17 @@ async function handleEntrySubmit(event) {
       }
     }
 
-    const nextId = mockStore.customers.length ? Math.max(...mockStore.customers.map((item) => Number(item.id_pelanggan))) + 1 : 1;
-    mockStore.customers.push({
-      id_pelanggan: nextId,
-      nama_pelanggan: namaPelanggan,
-      no_hp: noHp,
-    });
-    saveMockStore();
-
-    closeEntryModal();
-    await refreshAllData();
-    showToast('Pelanggan berhasil ditambahkan', 'success');
+    try {
+      await sendData('/api/pelanggan', 'POST', {
+        nama_pelanggan: namaPelanggan,
+        no_hp: noHp,
+      });
+      closeEntryModal();
+      await refreshAllData();
+      showToast('Pelanggan berhasil ditambahkan', 'success');
+    } catch (error) {
+      showToast(error.message || 'Gagal menambahkan pelanggan', 'error');
+    }
     return;
   }
 
@@ -976,19 +1108,19 @@ async function handleEntrySubmit(event) {
     }
   }
 
-  const nextId = mockStore.items.length ? Math.max(...mockStore.items.map((item) => Number(item.id_item))) + 1 : 1;
-  mockStore.items.push({
-    id_item: nextId,
-    nama_item: namaItem,
-    jenis_item: jenisItem,
-    harga,
-    stok: Math.max(0, stok),
-  });
-  saveMockStore();
-
-  closeEntryModal();
-  await refreshAllData();
-  showToast('Produk atau jasa berhasil ditambahkan', 'success');
+  try {
+    await sendData('/api/items', 'POST', {
+      nama_item: namaItem,
+      jenis_item: jenisItem,
+      harga,
+      stok: Math.max(0, stok),
+    });
+    closeEntryModal();
+    await refreshAllData();
+    showToast('Produk atau jasa berhasil ditambahkan', 'success');
+  } catch (error) {
+    showToast(error.message || 'Gagal menambahkan produk atau jasa', 'error');
+  }
 }
 
 async function loadDashboard() {
