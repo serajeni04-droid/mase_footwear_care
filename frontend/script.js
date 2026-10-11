@@ -8,14 +8,19 @@ function isSupabaseConfigured() {
 
 async function requestSupabaseEmployees(method, query = '', payload = null) {
   const projectUrl = String(supabaseConfig.url).replace(/\/+$/, '');
+  const headers = {
+    apikey: supabaseConfig.anonKey,
+    'Content-Type': 'application/json',
+    Prefer: 'return=representation',
+  };
+
+  if (!supabaseConfig.anonKey.startsWith('sb_publishable_')) {
+    headers.Authorization = `Bearer ${supabaseConfig.anonKey}`;
+  }
+
   const response = await fetch(`${projectUrl}/rest/v1/karyawan${query}`, {
     method,
-    headers: {
-      apikey: supabaseConfig.anonKey,
-      Authorization: `Bearer ${supabaseConfig.anonKey}`,
-      'Content-Type': 'application/json',
-      Prefer: 'return=representation',
-    },
+    headers,
     ...(payload ? { body: JSON.stringify(payload) } : {}),
   });
 

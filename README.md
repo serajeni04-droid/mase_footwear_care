@@ -40,8 +40,8 @@ Entitas database: `pelanggan`, `karyawan`, `produk_jasa`, dan `transaksi`.
 
 ## Koneksi Supabase untuk Karyawan
 1. Jalankan `database/migration_karyawan.sql` melalui Supabase SQL Editor.
-2. Ambil Project URL dan anon key dari pengaturan API proyek Supabase.
-3. Isi `frontend/supabase-config.js` dengan URL dan key tersebut. Jangan pernah menaruh `service_role` key di frontend.
+2. Ambil Project URL dan publishable key dari pengaturan API proyek Supabase.
+3. Isi `frontend/supabase-config.js` dengan URL dan key tersebut. Jangan pernah menaruh secret atau `service_role` key di frontend.
 4. Buka ulang aplikasi. Daftar dan operasi tambah, edit, serta hapus karyawan akan memakai tabel `public.karyawan` melalui Supabase REST API.
 
 Catatan keamanan: kebijakan RLS migrasi ini mengizinkan akses demo tanpa login. Siapa pun yang memiliki URL dan anon key dapat mengubah data karyawan selama kebijakan ini aktif. Jangan pernah memakai `service_role` key di frontend. Untuk aplikasi produksi, tambahkan autentikasi dan batasi kebijakan RLS sesuai pengguna. Data pelanggan, produk/jasa, dan transaksi demo masih memakai `localStorage`.
