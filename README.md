@@ -1,7 +1,7 @@
 # MASE Footwear Care
 
 Sistem pendapatan dan penjualan untuk layanan cuci sepatu serta penjualan produk perawatan sepatu.
-Demo website: https://serajeni04-droid.github.io/mase_footwear_care/frontend/index.html
+https://serajeni04-droid.github.io/mase_footwear_care/frontend/index.html
 ## Deskripsi
 Aplikasi ini dibuat untuk membantu mengelola:
 - data pelanggan
