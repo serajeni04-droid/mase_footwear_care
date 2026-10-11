@@ -37,6 +37,10 @@
             <span>👥</span>
             <span>Pelanggan</span>
           </a>
+          <a href="#karyawan-section" class="nav-item">
+            <span>🧑‍🔧</span>
+            <span>Karyawan</span>
+          </a>
         </nav>
 
         <div class="sidebar-footer">
@@ -104,6 +108,7 @@
                     <th>ID</th>
                     <th>Tanggal</th>
                     <th>Pelanggan</th>
+                    <th>Karyawan</th>
                     <th>Item</th>
                     <th>Jenis</th>
                     <th>Jumlah</th>
@@ -114,7 +119,7 @@
                 </thead>
                 <tbody id="transaction-table-body">
                   <tr>
-                    <td colspan="9" class="empty-state">Memuat data transaksi...</td>
+                    <td colspan="10" class="empty-state">Memuat data transaksi...</td>
                   </tr>
                 </tbody>
               </table>
@@ -144,6 +149,13 @@
                   <label for="itemSelect">Produk/Jasa</label>
                   <select id="itemSelect" required>
                     <option value="">Pilih item</option>
+                  </select>
+                </div>
+
+                <div class="field-group">
+                  <label for="employeeSelect">Karyawan</label>
+                  <select id="employeeSelect">
+                    <option value="">Pilih karyawan (opsional)</option>
                   </select>
                 </div>
 
@@ -226,11 +238,46 @@
                     <th>Nama Pelanggan</th>
                     <th>No. HP</th>
                     <th>Jumlah Transaksi</th>
+                    <th>Aksi</th>
                   </tr>
                 </thead>
                 <tbody id="customer-table-body">
                   <tr>
                     <td colspan="4" class="empty-state">Memuat data pelanggan...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="karyawan-section" class="page-section">
+          <div class="page-header compact">
+            <div>
+              <p class="eyebrow">Team</p>
+              <h2>Karyawan</h2>
+            </div>
+            <button type="button" class="primary-btn small-btn" id="add-employee-btn">
+              + Tambah Karyawan
+            </button>
+          </div>
+
+          <div class="panel">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nama Karyawan</th>
+                    <th>No. HP</th>
+                    <th>Jabatan</th>
+                    <th>Jumlah Transaksi</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="employee-table-body">
+                  <tr>
+                    <td colspan="6" class="empty-state">Memuat data karyawan...</td>
                   </tr>
                 </tbody>
               </table>

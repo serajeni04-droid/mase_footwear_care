@@ -5,6 +5,7 @@ https://serajeni04-droid.github.io/mase_footwear_care/frontend/index.html
 ## Deskripsi
 Aplikasi ini dibuat untuk membantu mengelola:
 - data pelanggan
+- data karyawan
 - data produk dan jasa
 - transaksi penjualan
 - pendapatan harian dan total transaksi
@@ -18,6 +19,9 @@ Aplikasi ini dibuat untuk membantu mengelola:
 - Input pelanggan baru
 - Edit pelanggan
 - Hapus pelanggan dengan validasi bila masih memiliki transaksi
+- Tambah, edit, dan hapus karyawan
+- Pilih karyawan yang menangani transaksi
+- Hapus karyawan dengan validasi bila masih tercatat pada transaksi
 - Input produk/jasa baru
 - Edit produk/jasa
 - Hapus produk/jasa dengan validasi bila masih digunakan dalam transaksi
@@ -34,6 +38,8 @@ Aplikasi ini dibuat untuk membantu mengelola:
 - `frontend/` : file antarmuka aplikasi
 - `backend/` : mock backend / route simulasi
 - `database/` : file SQL untuk skema database
+
+Entitas database: `pelanggan`, `karyawan`, `produk_jasa`, dan `transaksi`.
 
 ## Cara Menjalankan
 Buka file berikut di browser:

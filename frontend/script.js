@@ -1,13 +1,15 @@
-﻿const API_BASE_URL = '';
+const API_BASE_URL = '';
 const STORAGE_KEY = 'mase_footwear_care_store_v1';
 
 const state = {
   customers: [],
+  employees: [],
   items: [],
   transactions: [],
   dashboard: null,
   editingTransactionId: null,
   editingCustomerId: null,
+  editingEmployeeId: null,
   editingItemId: null,
 };
 
@@ -20,6 +22,11 @@ function getDefaultStore() {
       { id_pelanggan: 4, nama_pelanggan: 'Maya Putri', no_hp: '084567890123' },
       { id_pelanggan: 5, nama_pelanggan: 'Arga Wijaya', no_hp: '085678901234' },
       { id_pelanggan: 6, nama_pelanggan: 'Nadia Fernanda', no_hp: '086789012345' },
+    ],
+    employees: [
+      { id_karyawan: 1, nama_karyawan: 'Andi Saputra', no_hp: '087700000001', jabatan: 'Teknisi' },
+      { id_karyawan: 2, nama_karyawan: 'Siti Rahma', no_hp: '087700000002', jabatan: 'Kasir' },
+      { id_karyawan: 3, nama_karyawan: 'Budi Santoso', no_hp: '087700000003', jabatan: 'Admin' },
     ],
     items: [
       { id_item: 1, nama_item: 'Fast Cleaning', jenis_item: 'Jasa', harga: 35000, stok: 0 },
@@ -55,6 +62,14 @@ const mockStore = (() => {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed && Array.isArray(parsed.customers) && Array.isArray(parsed.items) && Array.isArray(parsed.transactions)) {
+        if (!Array.isArray(parsed.employees)) {
+          parsed.employees = getDefaultStore().employees;
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+          } catch (error) {
+            console.warn('Gagal memperbarui data karyawan di localStorage:', error);
+          }
+        }
         return parsed;
       }
     }
@@ -73,6 +88,7 @@ const mockStore = (() => {
 
 const elements = {
   customerSelect: document.getElementById('pelangganSelect'),
+  employeeSelect: document.getElementById('employeeSelect'),
   itemSelect: document.getElementById('itemSelect'),
   quantityInput: document.getElementById('quantityInput'),
   paymentMethod: document.getElementById('paymentMethod'),
@@ -84,6 +100,7 @@ const elements = {
   cancelEditBtn: document.getElementById('cancelEditBtn'),
   transactionTableBody: document.getElementById('transaction-table-body'),
   customerTableBody: document.getElementById('customer-table-body'),
+  employeeTableBody: document.getElementById('employee-table-body'),
   productGrid: document.getElementById('product-grid'),
   toast: document.getElementById('toast'),
   statPendapatan: document.getElementById('stat-total-pendapatan'),
@@ -91,6 +108,7 @@ const elements = {
   statPelanggan: document.getElementById('stat-total-pelanggan'),
   statItem: document.getElementById('stat-total-item'),
   addCustomerBtn: document.getElementById('add-customer-btn'),
+  addEmployeeBtn: document.getElementById('add-employee-btn'),
   addItemBtn: document.getElementById('add-item-btn'),
   entryModal: document.getElementById('entry-modal'),
   entryModalTitle: document.getElementById('entry-modal-title'),
@@ -155,6 +173,67 @@ function mockApiRequest(url, options = {}) {
               ).length,
             })),
           );
+        }
+
+        if (url === '/api/karyawan') {
+          return resolve(
+            mockStore.employees.map((employee) => ({
+              ...employee,
+              jumlah_transaksi: mockStore.transactions.filter(
+                (transaction) => Number(transaction.id_karyawan) === Number(employee.id_karyawan),
+              ).length,
+            })),
+          );
+        }
+
+        if (url.startsWith('/api/karyawan/')) {
+          const id = Number(url.split('/').pop());
+
+          if (method === 'PUT') {
+            const payload = JSON.parse(options.body || '{}');
+            const namaKaryawan = String(payload.nama_karyawan || '').trim();
+            const noHp = String(payload.no_hp || '').trim();
+            const jabatan = String(payload.jabatan || '').trim();
+            const employeeIndex = mockStore.employees.findIndex((employee) => Number(employee.id_karyawan) === id);
+
+            if (employeeIndex === -1) {
+              return reject(new Error('Karyawan tidak ditemukan.'));
+            }
+
+            if (!namaKaryawan || !noHp || !jabatan) {
+              return reject(new Error('Nama, nomor HP, dan jabatan karyawan wajib diisi.'));
+            }
+
+            mockStore.employees[employeeIndex] = {
+              ...mockStore.employees[employeeIndex],
+              nama_karyawan: namaKaryawan,
+              no_hp: noHp,
+              jabatan,
+            };
+
+            saveMockStore();
+            return resolve({ success: true, message: 'Data karyawan berhasil diperbarui.' });
+          }
+
+          if (method === 'DELETE') {
+            const hasTransactions = mockStore.transactions.some(
+              (transaction) => Number(transaction.id_karyawan) === id,
+            );
+
+            if (hasTransactions) {
+              return reject(new Error('Karyawan tidak dapat dihapus karena masih tercatat pada transaksi.'));
+            }
+
+            const beforeLength = mockStore.employees.length;
+            mockStore.employees = mockStore.employees.filter((employee) => Number(employee.id_karyawan) !== id);
+
+            if (mockStore.employees.length === beforeLength) {
+              return reject(new Error('Karyawan tidak ditemukan.'));
+            }
+
+            saveMockStore();
+            return resolve({ success: true, message: 'Data karyawan berhasil dihapus.' });
+          }
         }
 
         if (url.startsWith('/api/pelanggan/')) {
@@ -290,6 +369,7 @@ function mockApiRequest(url, options = {}) {
             tanggal_transaksi: new Date().toISOString().split('T')[0],
             id_pelanggan: Number(payload.id_pelanggan),
             id_item: Number(payload.id_item),
+            id_karyawan: payload.id_karyawan ? Number(payload.id_karyawan) : null,
             jumlah: Number(payload.jumlah),
             total_harga: Number(item.harga) * Number(payload.jumlah),
             metode_pembayaran: payload.metode_pembayaran,
@@ -303,6 +383,7 @@ function mockApiRequest(url, options = {}) {
         if (url === '/api/transaksi') {
           const customerMap = new Map(mockStore.customers.map((item) => [item.id_pelanggan, item]));
           const itemMap = new Map(mockStore.items.map((item) => [item.id_item, item]));
+          const employeeMap = new Map(mockStore.employees.map((employee) => [employee.id_karyawan, employee]));
 
           return resolve(
             [...mockStore.transactions]
@@ -311,6 +392,7 @@ function mockApiRequest(url, options = {}) {
                 ...item,
                 pelanggan: customerMap.get(item.id_pelanggan) || null,
                 produk_jasa: itemMap.get(item.id_item) || null,
+                karyawan: employeeMap.get(item.id_karyawan) || null,
               })),
           );
         }
@@ -341,6 +423,7 @@ function mockApiRequest(url, options = {}) {
               ...mockStore.transactions[index],
               id_pelanggan: payload.id_pelanggan !== undefined ? Number(payload.id_pelanggan) : mockStore.transactions[index].id_pelanggan,
               id_item: payload.id_item !== undefined ? Number(payload.id_item) : mockStore.transactions[index].id_item,
+              id_karyawan: payload.id_karyawan ? Number(payload.id_karyawan) : null,
               jumlah: newJumlah,
               total_harga: Number(item.harga) * newJumlah,
               metode_pembayaran: payload.metode_pembayaran || mockStore.transactions[index].metode_pembayaran,
@@ -395,6 +478,17 @@ function renderItemOptions() {
   });
 }
 
+function renderEmployeeOptions() {
+  elements.employeeSelect.innerHTML = '<option value="">Pilih karyawan (opsional)</option>';
+
+  state.employees.forEach((employee) => {
+    const option = document.createElement('option');
+    option.value = employee.id_karyawan;
+    option.textContent = `${employee.nama_karyawan} (${employee.jabatan})`;
+    elements.employeeSelect.appendChild(option);
+  });
+}
+
 function updatePricePreview() {
   const selectedItemId = Number(elements.itemSelect.value);
   const quantity = Number(elements.quantityInput.value) || 1;
@@ -433,7 +527,7 @@ function renderTransactions() {
   if (!state.transactions.length) {
     elements.transactionTableBody.innerHTML = `
       <tr>
-        <td colspan="9" class="empty-state">Belum ada transaksi. Silakan tambahkan transaksi baru.</td>
+        <td colspan="10" class="empty-state">Belum ada transaksi. Silakan tambahkan transaksi baru.</td>
       </tr>
     `;
     return;
@@ -451,6 +545,7 @@ function renderTransactions() {
           <td>#${transaction.id_transaksi}</td>
           <td>${formatDateIndonesia(transaction.tanggal_transaksi)}</td>
           <td>${transaction.pelanggan?.nama_pelanggan || '-'}</td>
+          <td>${transaction.karyawan?.nama_karyawan || '-'}</td>
           <td>${transaction.produk_jasa?.nama_item || '-'}</td>
           <td><span class="badge ${itemType === 'jasa' ? 'type-jasa' : 'type-produk'}">${itemTypeLabel}</span></td>
           <td>${transaction.jumlah}</td>
@@ -510,6 +605,37 @@ function renderCustomers() {
   });
 }
 
+function renderEmployees() {
+  if (!state.employees.length) {
+    elements.employeeTableBody.innerHTML = '<tr><td colspan="6" class="empty-state">Belum ada data karyawan.</td></tr>';
+    return;
+  }
+
+  elements.employeeTableBody.innerHTML = state.employees
+    .map((employee) => `
+      <tr>
+        <td>${employee.id_karyawan}</td>
+        <td>${employee.nama_karyawan}</td>
+        <td>${employee.no_hp || '-'}</td>
+        <td>${employee.jabatan}</td>
+        <td>${employee.jumlah_transaksi || 0}</td>
+        <td>
+          <button class="action-btn edit" data-employee-action="edit" data-id="${employee.id_karyawan}">Edit</button>
+          <button class="action-btn delete" data-employee-action="delete" data-id="${employee.id_karyawan}">Hapus</button>
+        </td>
+      </tr>
+    `)
+    .join('');
+
+  elements.employeeTableBody.querySelectorAll('[data-employee-action="edit"]').forEach((button) => {
+    button.addEventListener('click', () => openEmployeeModal(Number(button.dataset.id)));
+  });
+
+  elements.employeeTableBody.querySelectorAll('[data-employee-action="delete"]').forEach((button) => {
+    button.addEventListener('click', () => handleDeleteEmployee(Number(button.dataset.id)));
+  });
+}
+
 function renderProducts() {
   if (!state.items.length) {
     elements.productGrid.innerHTML = '<div class="empty-state">Belum ada produk atau jasa.</div>';
@@ -548,10 +674,37 @@ function renderProducts() {
 
 function closeEntryModal() {
   state.editingCustomerId = null;
+  state.editingEmployeeId = null;
   state.editingItemId = null;
   elements.entryModal.classList.add('hidden');
   elements.entryModal.setAttribute('aria-hidden', 'true');
   elements.entryForm.reset();
+}
+
+function openEmployeeModal(employeeId = null) {
+  const isEditing = Boolean(employeeId);
+  const employee = isEditing ? state.employees.find((item) => Number(item.id_karyawan) === Number(employeeId)) : null;
+
+  elements.entryModalTitle.textContent = isEditing ? 'Edit Karyawan' : 'Tambah Karyawan';
+  state.editingEmployeeId = isEditing ? Number(employeeId) : null;
+  elements.entryFormFields.innerHTML = `
+    <div class="field-group">
+      <label for="employee-name">Nama karyawan</label>
+      <input id="employee-name" name="nama_karyawan" type="text" maxlength="60" placeholder="Masukkan nama karyawan" value="${employee?.nama_karyawan || ''}" required />
+    </div>
+    <div class="field-group">
+      <label for="employee-phone">No. HP</label>
+      <input id="employee-phone" name="no_hp" type="tel" maxlength="20" placeholder="Contoh: 081234567890" value="${employee?.no_hp || ''}" required />
+    </div>
+    <div class="field-group">
+      <label for="employee-role">Jabatan</label>
+      <input id="employee-role" name="jabatan" type="text" maxlength="40" placeholder="Contoh: Teknisi" value="${employee?.jabatan || ''}" required />
+    </div>
+  `;
+
+  elements.entryModal.classList.remove('hidden');
+  elements.entryModal.setAttribute('aria-hidden', 'false');
+  document.getElementById('employee-name').focus();
 }
 
 function openCustomerModal(customerId = null) {
@@ -614,6 +767,43 @@ async function handleEntrySubmit(event) {
   event.preventDefault();
   const formData = new FormData(elements.entryForm);
   const modalTitle = elements.entryModalTitle.textContent;
+
+  if (modalTitle.includes('Karyawan')) {
+    const namaKaryawan = String(formData.get('nama_karyawan') || '').trim();
+    const noHp = String(formData.get('no_hp') || '').trim();
+    const jabatan = String(formData.get('jabatan') || '').trim();
+
+    if (!namaKaryawan || !noHp || !jabatan) {
+      showToast('Nama, nomor HP, dan jabatan karyawan wajib diisi.', 'error');
+      return;
+    }
+
+    if (state.editingEmployeeId) {
+      try {
+        await sendData(`/api/karyawan/${state.editingEmployeeId}`, 'PUT', {
+          nama_karyawan: namaKaryawan,
+          no_hp: noHp,
+          jabatan,
+        });
+        closeEntryModal();
+        await refreshAllData();
+        showToast('Data karyawan berhasil diperbarui.', 'success');
+      } catch (error) {
+        showToast(error.message || 'Gagal memperbarui karyawan.', 'error');
+      }
+      return;
+    }
+
+    const nextId = mockStore.employees.length
+      ? Math.max(...mockStore.employees.map((item) => Number(item.id_karyawan))) + 1
+      : 1;
+    mockStore.employees.push({ id_karyawan: nextId, nama_karyawan: namaKaryawan, no_hp: noHp, jabatan });
+    saveMockStore();
+    closeEntryModal();
+    await refreshAllData();
+    showToast('Karyawan berhasil ditambahkan.', 'success');
+    return;
+  }
 
   if (modalTitle.includes('Pelanggan')) {
     const namaPelanggan = String(formData.get('nama_pelanggan') || '').trim();
@@ -727,6 +917,13 @@ async function loadCustomers() {
   renderCustomers();
 }
 
+async function loadEmployees() {
+  const data = await fetchData('/api/karyawan');
+  state.employees = data;
+  renderEmployeeOptions();
+  renderEmployees();
+}
+
 async function loadItems() {
   const data = await fetchData('/api/items');
   state.items = data;
@@ -743,7 +940,7 @@ async function loadTransactions() {
 
 async function refreshAllData() {
   try {
-    await Promise.all([loadDashboard(), loadCustomers(), loadItems(), loadTransactions()]);
+    await Promise.all([loadDashboard(), loadCustomers(), loadEmployees(), loadItems(), loadTransactions()]);
   } catch (error) {
     showToast(error.message || 'Terjadi kesalahan saat memuat data', 'error');
   }
@@ -765,6 +962,7 @@ async function handleSubmitTransaction(event) {
   const idItem = Number(elements.itemSelect.value);
   const jumlah = Number(elements.quantityInput.value);
   const metodePembayaran = elements.paymentMethod.value;
+  const idKaryawan = Number(elements.employeeSelect.value) || null;
 
   if (!idPelanggan || !idItem || !jumlah || !metodePembayaran) {
     showToast('Semua field harus diisi dengan benar.', 'error');
@@ -774,6 +972,7 @@ async function handleSubmitTransaction(event) {
   const payload = {
     id_pelanggan: idPelanggan,
     id_item: idItem,
+    id_karyawan: idKaryawan,
     jumlah,
     metode_pembayaran: metodePembayaran,
   };
@@ -806,6 +1005,7 @@ function handleEditTransaction(id) {
   state.editingTransactionId = id;
   elements.customerSelect.value = transaction.id_pelanggan;
   elements.itemSelect.value = transaction.id_item;
+  elements.employeeSelect.value = transaction.id_karyawan || '';
   elements.quantityInput.value = transaction.jumlah;
   elements.paymentMethod.value = transaction.metode_pembayaran;
   elements.submitTransactionBtn.textContent = 'Perbarui Transaksi';
@@ -903,12 +1103,39 @@ async function handleDeleteItem(id) {
   }
 }
 
+async function handleDeleteEmployee(id) {
+  const employee = state.employees.find((item) => Number(item.id_karyawan) === Number(id));
+
+  if (!employee) {
+    showToast('Karyawan tidak ditemukan.', 'error');
+    return;
+  }
+
+  if (state.transactions.some((transaction) => Number(transaction.id_karyawan) === Number(id))) {
+    showToast('Karyawan tidak dapat dihapus karena masih tercatat pada transaksi.', 'error');
+    return;
+  }
+
+  if (!window.confirm(`Apakah Anda yakin ingin menghapus karyawan ${employee.nama_karyawan}?`)) {
+    return;
+  }
+
+  try {
+    await sendData(`/api/karyawan/${id}`, 'DELETE', {});
+    await refreshAllData();
+    showToast('Data karyawan berhasil dihapus.', 'success');
+  } catch (error) {
+    showToast(error.message || 'Gagal menghapus karyawan.', 'error');
+  }
+}
+
 function initEvents() {
   elements.itemSelect.addEventListener('change', updatePricePreview);
   elements.quantityInput.addEventListener('input', updatePricePreview);
   elements.transactionForm.addEventListener('submit', handleSubmitTransaction);
   elements.cancelEditBtn.addEventListener('click', resetForm);
   elements.addCustomerBtn.addEventListener('click', openCustomerModal);
+  elements.addEmployeeBtn.addEventListener('click', () => openEmployeeModal());
   elements.addItemBtn.addEventListener('click', openItemModal);
   elements.closeEntryModalBtn.addEventListener('click', closeEntryModal);
   elements.cancelEntryFormBtn.addEventListener('click', closeEntryModal);
