@@ -749,7 +749,7 @@ function renderTransactions() {
   }
 
   elements.transactionTableBody.innerHTML = state.transactions
-    .map((transaction) => {
+    .map((transaction, index) => {
       const paymentClass = (transaction.metode_pembayaran || 'CASH').toLowerCase();
       const itemType = (transaction.produk_jasa?.jenis_item || 'Produk').toLowerCase();
       const paymentLabel = transaction.metode_pembayaran || 'CASH';
@@ -757,7 +757,7 @@ function renderTransactions() {
 
       return `
         <tr>
-          <td>#${transaction.id_transaksi}</td>
+          <td>${index + 1}</td>
           <td>${formatDateIndonesia(transaction.tanggal_transaksi)}</td>
           <td>${transaction.pelanggan?.nama_pelanggan || '-'}</td>
           <td>${transaction.karyawan?.nama_karyawan || '-'}</td>
@@ -796,9 +796,9 @@ function renderCustomers() {
 
   elements.customerTableBody.innerHTML = state.customers
     .map(
-      (customer) => `
+      (customer, index) => `
         <tr>
-          <td>${customer.id_pelanggan}</td>
+          <td>${index + 1}</td>
           <td>${customer.nama_pelanggan}</td>
           <td>${customer.no_hp || '-'}</td>
           <td>${customer.jumlah_transaksi || 0}</td>
@@ -827,9 +827,9 @@ function renderEmployees() {
   }
 
   elements.employeeTableBody.innerHTML = state.employees
-    .map((employee) => `
+    .map((employee, index) => `
       <tr>
-        <td>${employee.id_karyawan}</td>
+        <td>${index + 1}</td>
         <td>${employee.nama_karyawan}</td>
         <td>${employee.no_hp || '-'}</td>
         <td>${employee.jabatan}</td>
@@ -859,12 +859,13 @@ function renderProducts() {
 
   elements.productGrid.innerHTML = state.items
     .map(
-      (item) => `
+      (item, index) => `
         <div class="product-card">
           <div class="product-card-top">
             <span class="badge ${item.jenis_item === 'Jasa' ? 'type-jasa' : 'type-produk'}">${item.jenis_item}</span>
             <span>Stok: ${item.stok}</span>
           </div>
+          <small>No. ${index + 1}</small>
           <h4>${item.nama_item}</h4>
           <small>${item.jenis_item}</small>
           <div class="price">${formatRupiah(item.harga)}</div>

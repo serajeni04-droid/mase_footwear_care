@@ -41,7 +41,7 @@ Aplikasi ini dibuat untuk membantu mengelola:
 Entitas database: `pelanggan`, `karyawan`, `produk_jasa`, dan `transaksi`.
 
 ## Koneksi Supabase
-1. Jalankan `database/migration_karyawan.sql` melalui Supabase SQL Editor.
+1. Jalankan `database/database.sql` melalui Supabase SQL Editor. File ini membuat tabel, relasi, policy, dan data contoh untuk semua entitas.
 2. Ambil Project URL dan publishable key dari pengaturan API proyek Supabase.
 3. Isi `frontend/supabase-config.js` dengan URL dan key tersebut. Jangan pernah menaruh secret atau `service_role` key di frontend.
 4. Buka ulang aplikasi. Pelanggan, karyawan, produk/jasa, transaksi, dan dashboard akan memakai tabel Supabase melalui REST API.
